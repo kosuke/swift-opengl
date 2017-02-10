@@ -12,8 +12,8 @@ namespace ext {
     
     PointSet::PointSet(std::size_t size)
     : size_(size)
-    , position_(size * 3)
-    , velocity_(size * 3) {
+    , position_(size * 2)
+    , velocity_(size * 2) {
     }
     
     ParticleSystem::ParticleSystem() {
@@ -83,10 +83,10 @@ namespace ext {
             auto& pp = ps->position();
             auto& vv = ps->velocity();
             for(auto i = 0; i < ps->size(); ++i) {
-                auto& x  = pp[i * 3 + 0];
-                auto& y  = pp[i * 3 + 1];
-                auto& vx = vv[i * 3 + 0];
-                auto& vy = vv[i * 3 + 1];
+                auto& x  = pp[i * 2 + 0];
+                auto& y  = pp[i * 2 + 1];
+                auto& vx = vv[i * 2 + 0];
+                auto& vy = vv[i * 2 + 1];
                 euler(K, dt, x, y, vx, vy);
                 //rk2(K, dt, dt2, x, y, vx, vy);
             }

@@ -9,7 +9,7 @@ Simple Xcode projects to demonstrate the following topics:
 This example consists of two projects: 
 
 1. External: C++ code that simulates a particle system.
-2. App: iOS application that displays animation using results from External. 
+2. App: iOS application that displays 2D animation using results from External. 
 
 ## Prerequisites
 
@@ -18,5 +18,6 @@ This example consists of two projects:
 
 ## Usage
 
-Open Swift-OpenGL workspace in Xcode. Run the App project to launch the Simulator. 
+* Open Swift-OpenGL workspace in Xcode. Run the App project to launch the Simulator. 
+* Tap anywhere on the screen to reset the particle animation
 
