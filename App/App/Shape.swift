@@ -17,17 +17,15 @@ protocol Shape {
 }
 
 class SimpleShape : Shape {
-
-    internal func draw(_ context: RenderContext) {
-    }
     
-    internal init() {}
+    var shader: Shader?
     
     var modified: Bool = true
     var position: (x: Float, y: Float) = (0.0, 0.0)
         { didSet { modified = true } }
     var scale:    Float      = 1.0
         { didSet { modified = true } }
+    
     private var modelMatrix_ = GLKMatrix4()
     var modelMatrix: GLKMatrix4 {
         get {
@@ -39,47 +37,80 @@ class SimpleShape : Shape {
             return modelMatrix_
         }
     }
+    
     var color: UIColor = .gray
     
-    func prepareDraw(_ context: RenderContext, _ shader: Shader) {
+    internal init(shader: Shader? = nil) {
+        self.shader = shader
+    }
+    
+    deinit {
+        shader = nil
+    }
+    
+    func prepareDraw(_ context: RenderContext) {
+        guard let shader = self.shader else {
+            return
+        }
         shader.enable()
         shader.matrix4fv("projection",  context.projection)
         shader.matrix4fv("modelMatrix", modelMatrix)
         let comp = color.cgColor.comp
         shader.uniform4f("color", comp.r, comp.g, comp.b, comp.a)
     }
+    
+    internal func draw(_ context: RenderContext) {
+    }
 }
 
 class Quad : SimpleShape {
 
-    var shader:      Shader?
     var vertexArray: VertexArray?
     var fill:        Bool
     
-    init(fill: Bool = true) {
+    init(fill: Bool = true, useTexture: Bool = false, shader: Shader? = nil) {
         let vertices: [Float] = [
-            0, 0,
-            1, 0,
-            1, 1,
-            0, 1].flatMap{ $0 - 0.5 }
-        let subdata = [(Slot.position, VertexType.float(2), 4)]
-        vertexArray = VertexArray(subdata, dynamic: false)
-        vertexArray?.updateSubdata(0, vertices)
-        shader = Shader("flat.vert", "flat.frag")
+            -1.0, -1.0,
+             1.0, -1.0,
+             1.0,  1.0,
+            -1.0,  1.0]
+        if useTexture {
+            let texCoords: [Float] = [
+                0.0, 0.0,
+                1.0, 0.0,
+                1.0, 1.0,
+                0.0, 1.0]
+            let subdata = [(Slot.position, VertexType.float(2), 4),
+                           (Slot.texture, VertexType.float(2), 4)]
+            vertexArray = VertexArray(subdata, dynamic: false)
+            vertexArray?.updateSubdata(0, vertices)
+            vertexArray?.updateSubdata(1, texCoords)
+        } else {
+            let subdata = [(Slot.position, VertexType.float(2), 4)]
+            vertexArray = VertexArray(subdata, dynamic: false)
+            vertexArray?.updateSubdata(0, vertices)
+        }
         self.fill = fill
+        super.init(shader: shader ?? Shader("flat.vert", "flat.frag"))
     }
     
     deinit {
-        shader = nil
         vertexArray = nil
     }
     
     override func draw(_ context: RenderContext) {
-        guard let shader = self.shader,
-            let vertexArray = self.vertexArray else {
+        guard let vertexArray = self.vertexArray else {
             return
         }
-        prepareDraw(context, shader)
+        prepareDraw(context)
+        vertexArray.bind()
+        glDrawArrays(fill ? GL_TRIANGLE_FAN<> : GL_LINE_LOOP<>, 0, 4)
+    }
+    
+     func draw() {
+        guard let vertexArray = self.vertexArray else {
+            return
+        }
         vertexArray.bind()
         glDrawArrays(fill ? GL_TRIANGLE_FAN<> : GL_LINE_LOOP<>, 0, 4)
     }
@@ -87,27 +118,25 @@ class Quad : SimpleShape {
 
 class Circle : SimpleShape {
 
-    var shader:      Shader?
     var vertexArray: VertexArray?
     var count:       Int
     var fill:        Bool
     
-    init(resolution: Int = 64, fill: Bool = true) {
+    init(resolution: Int = 64, fill: Bool = true, shader: Shader? = nil) {
         let vertices: [Float] = {
             var vv = [Float]()
             if fill {
                 vv.append(0)
                 vv.append(0)
             }
-            let r = Float(0.5)
             for i in 0..<resolution {
-                let x = r * cosf(Float(i) * Float(2.0 * M_PI) / Float(resolution))
-                let y = r * sinf(Float(i) * Float(2.0 * M_PI) / Float(resolution))
+                let x = cosf(Float(i) * Float(2.0 * M_PI) / Float(resolution))
+                let y = sinf(Float(i) * Float(2.0 * M_PI) / Float(resolution))
                 vv.append(x)
                 vv.append(y)
             }
             if fill {
-                vv.append(r)
+                vv.append(1.0)
                 vv.append(0)
             }
             return vv
@@ -115,22 +144,20 @@ class Circle : SimpleShape {
         let subdata = [(Slot.position, VertexType.float(2), vertices.count / 2)]
         vertexArray = VertexArray(subdata, dynamic: false)
         vertexArray?.updateSubdata(0, vertices)
-        shader = Shader("flat.vert", "flat.frag")
         self.count = fill ? resolution + 2 : resolution
         self.fill  = fill
+        super.init(shader: shader ?? Shader("flat.vert", "flat.frag"))
     }
     
     deinit {
-        shader = nil
         vertexArray = nil
     }
     
     override func draw(_ context: RenderContext) {
-        guard let shader = self.shader,
-            let vertexArray = self.vertexArray else {
+        guard let vertexArray = self.vertexArray else {
                 return
         }
-        prepareDraw(context, shader)
+        prepareDraw(context)
         vertexArray.bind()
         glDrawArrays(fill ? GL_TRIANGLE_FAN<> : GL_LINE_LOOP<>, 0, count<>)
     }

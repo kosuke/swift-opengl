@@ -2,9 +2,10 @@
 
 Simple Xcode projects to demonstrate the following topics: 
 
-* Swift 3 (iOS) + GLKit (ES 3.0+)
+* Swift 3 (iOS) + GLKit (ES 3.0)
 * Importing external static library (C++)
 * Copying C++ arrays to OpenGL's VBO (Swift)
+* Multisample framebuffer for post-processing effets
 
 This example consists of two projects: 
 
@@ -20,10 +21,6 @@ This example consists of two projects:
 
 * Open Swift-OpenGL workspace in Xcode. Run the App project to launch the Simulator. 
 * Tap anywhere on the screen to reset the particle animation
-
-## Notes
-
-* For a simpler sample without helper classes, refer to be3ae5e30e08ebc5ad2bf010e526c57dc1852bbb
 
 ## Screenshot
 

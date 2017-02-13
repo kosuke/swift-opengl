@@ -60,6 +60,7 @@ extension CGColor {
 struct Slot {
     static let position:  GLuint = 0
     static let velocity:  GLuint = 1
+    static let texture:   GLuint = 1
 }
 
 class Shader {
@@ -159,6 +160,13 @@ class Shader {
             return nil
         }
         return uniform
+    }
+    
+    func uniform1i(_ name: String, _ i: Int) {
+        guard let uniform = getUniform(name) else {
+            return
+        }
+        glUniform1i(uniform.location, i<>)
     }
     
     func uniform4f(_ name: String, _ x: Float, _ y: Float, _ z: Float, _ w: Float) {
@@ -275,3 +283,29 @@ class VertexArray {
     }
 }
 
+class Texture {
+    
+    var tex: GLuint = 0
+    
+    var id: GLuint { get { return tex } }
+    
+    deinit {
+        glDeleteTextures(1, &tex)
+    }
+    
+    init? (_ width: Int, _ height: Int) {
+        var tex: GLuint = 0
+        glGenTextures(1, &tex)
+        glBindTexture(GL_TEXTURE_2D<>, tex)
+        glTexImage2D(GL_TEXTURE_2D<>, 0, GL_RGBA8, width<>, height<>,
+                     0, GL_RGBA<>, GL_UNSIGNED_BYTE<>, nil)
+        glTexParameteri(GL_TEXTURE_2D<>, GL_TEXTURE_MIN_FILTER<>, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D<>, GL_TEXTURE_MAG_FILTER<>, GL_LINEAR)
+        glBindTexture(GL_TEXTURE_2D<>, 0)
+        self.tex = tex
+    }
+    
+    func bind() {
+        glBindTexture(GL_TEXTURE_2D<>, tex)
+    }
+}

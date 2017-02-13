@@ -13,8 +13,9 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
     
     var context = RenderContext()
     var shapes  = [Shape]()
-    weak var quad:      Quad?
     weak var particles: ParticleSet?
+    var screen: Screen?
+    
     var needsResize: Bool = true
     
     override func viewDidLoad() {
@@ -25,7 +26,7 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
         let view = super.view as! GLKView
         view.context = EAGLContext(api: .openGLES3)
         EAGLContext.setCurrent(view.context)
-        view.drawableMultisample = .multisample4X
+        //view.drawableMultisample = .multisample4X
         
         // Gesture
         view.isUserInteractionEnabled = true
@@ -54,25 +55,22 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
         prepare()
     }
     
+    override func viewWillLayoutSubviews() {
+
+    }
+    
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         dispose()
     }
     
-    override func viewWillTransition(to size: CGSize,
-                                     with coordinator: UIViewControllerTransitionCoordinator) {
-        print("Trans")
+    override func viewWillTransition(
+        to size: CGSize,
+        with coordinator: UIViewControllerTransitionCoordinator) {
         needsResize = true
     }
     
     func prepare() {
-        // Quad
-        let quad = Quad()
-        quad.scale = 0.1
-        quad.position = (0.0, 0.0)
-        self.quad = quad
-        shapes.append(quad)
-        
         // Shapes
         let N = 30
         for i in 0..<N {
@@ -88,7 +86,7 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
             let x = 0.5 * cosf(theta)
             let y = 0.5 * sinf(theta)
             shape.position = (x, y)
-            shape.scale = 0.05
+            shape.scale = 0.025
             shape.color = UIColor(red:   CGFloat(2.0 * x),
                                   green: CGFloat(2.0 * y),
                                   blue:  0.8,
@@ -101,19 +99,18 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
         self.particles = particles
         shapes.append(particles)
         
-        // Projecton Matrix
-        let w = view.frame.size.width;
-        let h = view.frame.size.height;
-        let aspect = Float(w / h)
-        glViewport(0, 0, GLsizei(w), GLsizei(h))
-        context.projection = GLKMatrix4MakeOrtho(-aspect, aspect,
-                                                 -1, 1, -1, 1)
         // View
         glEnable(GL_BLEND<>)
         glBlendFunc(GL_SRC_ALPHA<>, GL_ONE_MINUS_SRC_ALPHA<>)
+        
+        // Offscreen framebuffer (assign nil if no postprocessing is required)
+        let view = super.view as! GLKView
+        self.screen = (view.drawableMultisample == .multisample4X) ?
+            MultisampleScreen() : DefaultScreen()
     }
     
     func dispose() {
+        screen = nil
         shapes.removeAll(keepingCapacity: true)
     }
     
@@ -128,13 +125,6 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
         
         // Fake random walk
         let rand = { (Float(arc4random() % 65536) / 65536.0 - 0.5) }
-        guard let quad = self.quad else {
-            return
-        }
-        quad.position.x += 0.005 * rand()
-        quad.position.y += 0.005 * rand()
-        
-        // Circles are subtler
         for shape in shapes {
             if let circle = shape as? Circle {
                 circle.position.x += 0.001 * rand()
@@ -144,13 +134,10 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
     }
     
     override func glkView(_ view: GLKView, drawIn rect: CGRect) {
-        // Clear
-        glClearColor(0.1, 0.1, 0.1, 0.0)
-        glClear((GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)<>);
-        
         // Resize
         if needsResize {
             needsResize = false
+            
             // Projecton Matrix
             let w = view.frame.size.width;
             let h = view.frame.size.height;
@@ -158,13 +145,21 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
             glViewport(0, 0, GLsizei(w), GLsizei(h))
             context.projection = GLKMatrix4MakeOrtho(-aspect, aspect,
                                                      -1, 1, -1, 1)
+            // Offscreen
+            screen?.resized(view.drawableWidth, view.drawableHeight)
         }
+
+        // Start capturing
+        screen?.capture()
         
         // Draw
+        glClearColor(0.1, 0.1, 0.1, 0.0)
+        glClear((GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)<>);
         for shape in shapes {
             shape.draw(context)
         }
-        glBindVertexArray(0)
-        glUseProgram(0)
+        
+        // Postprocess
+        screen?.draw()
     }
 }
