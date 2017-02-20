@@ -168,7 +168,14 @@ class Shader {
         }
         glUniform1i(uniform.location, i<>)
     }
-    
+
+    func uniform1f(_ name: String, _ f: Float) {
+        guard let uniform = getUniform(name) else {
+            return
+        }
+        glUniform1f(uniform.location, f)
+    }
+
     func uniform4f(_ name: String, _ x: Float, _ y: Float, _ z: Float, _ w: Float) {
         guard let uniform = getUniform(name) else {
             return

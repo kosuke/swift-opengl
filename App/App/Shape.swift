@@ -185,8 +185,9 @@ class ParticleSet : Shape {
     var shader:      Shader?
     var vertexArray: VertexArray?
     var count:       Int
+    var pointSize:   Float
     
-    init() {
+    init(pointSize: Float = 10.0) {
         // Particles
         particle_system_init()
         let N = 32
@@ -211,6 +212,7 @@ class ParticleSet : Shape {
                        (Slot.velocity, VertexType.float(2), count)]
         vertexArray = VertexArray(subdata)
         self.count = count
+        self.pointSize = pointSize
     }
     
     deinit {
@@ -232,7 +234,8 @@ class ParticleSet : Shape {
     
     func draw(_ context: RenderContext) {
         shader?.enable()
-        shader?.matrix4fv("projection",  context.projection)
+        shader?.matrix4fv("projection", context.projection)
+        shader?.uniform1f("pointSize", pointSize)
         vertexArray?.bind()
         glDrawArrays(GL_POINTS<>, 0, (count)<>)
     }

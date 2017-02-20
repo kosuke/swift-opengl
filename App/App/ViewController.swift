@@ -40,8 +40,8 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
     func tapped(_ sender: UITapGestureRecognizer) {
         // Reset particles
         if let index = shapes.index(where: { ($0 as? ParticleSet) != nil }) {
-            shapes.remove(at: index)
-            let particles = ParticleSet()
+            let pointSize = (shapes.remove(at: index) as! ParticleSet).pointSize
+            let particles = ParticleSet(pointSize: pointSize)
             self.particles = particles
             shapes.append(particles)
         }
@@ -98,7 +98,7 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
         }
         
         // Particle
-        let particles = ParticleSet()
+        let particles = ParticleSet(pointSize: 10.0)
         self.particles = particles
         shapes.append(particles)
         
@@ -148,7 +148,6 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
             glViewport(0, 0, GLsizei(w), GLsizei(h))
             context.projection = GLKMatrix4MakeOrtho(-aspect, aspect,
                                                      -1, 1, -1, 1)
-            context.projection = GLKMatrix4Scale(context.projection, 0.5, 0.5, 1.0)
             // Offscreen
             screen?.resized(view.drawableWidth, view.drawableHeight)
         }
