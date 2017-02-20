@@ -67,13 +67,30 @@ class Quad : SimpleShape {
 
     var vertexArray: VertexArray?
     var fill:        Bool
+
+    convenience init(fill: Bool = true, useTexture: Bool = false,
+                     shader: Shader? = nil) {
+        self.init(fill: fill, useTexture: useTexture, shader: shader,
+                  vertices: [-1.0, -1.0,
+                              1.0, -1.0,
+                              1.0,  1.0,
+                             -1.0,  1.0]
+        )
+    }
+
+    convenience init(width: Float, height: Float, fill: Bool = true,
+                      useTexture: Bool = false, shader: Shader? = nil) {
+        let (w2, h2) = (width / 2, height / 2)
+        self.init(fill: fill, useTexture: useTexture, shader: shader,
+                  vertices: [-w2, -h2,
+                              w2, -h2,
+                              w2,  h2,
+                             -w2,  h2]
+        )
+    }
     
-    init(fill: Bool = true, useTexture: Bool = false, shader: Shader? = nil) {
-        let vertices: [Float] = [
-            -1.0, -1.0,
-             1.0, -1.0,
-             1.0,  1.0,
-            -1.0,  1.0]
+    init(fill: Bool = true, useTexture: Bool = false,
+         shader: Shader? = nil, vertices: [Float]) {
         if useTexture {
             let texCoords: [Float] = [
                 0.0, 0.0,

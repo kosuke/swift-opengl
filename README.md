@@ -5,7 +5,7 @@ Simple Xcode projects to demonstrate the following topics:
 * Swift 3 (iOS) + GLKit (ES 3.0)
 * Importing external static library (C++)
 * Copying C++ arrays to OpenGL's VBO (Swift)
-* Multisample framebuffer for post-processing effets
+* Multisample framebuffer for post-processing effects
 
 This example consists of two projects: 
 

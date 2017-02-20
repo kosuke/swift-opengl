@@ -16,7 +16,8 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
     weak var particles: ParticleSet?
     var screen: Screen?
     
-    var needsResize: Bool = true
+    var isBlurEnabled: Bool = false
+    var needsResize: Bool   = true
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -44,6 +45,8 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
             self.particles = particles
             shapes.append(particles)
         }
+        // Switch blur
+        isBlurEnabled = !isBlurEnabled
     }
     
     override func didReceiveMemoryWarning() {
@@ -78,7 +81,7 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
                 switch(i % 4) {
                 case 0:  return Circle()
                 case 1:  return Circle(fill: false)
-                case 2:  return Quad()
+                case 2:  return Quad(width: 2.0, height: 1.0)
                 default: return Quad(fill: false)
                 }
             }()
@@ -145,6 +148,7 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
             glViewport(0, 0, GLsizei(w), GLsizei(h))
             context.projection = GLKMatrix4MakeOrtho(-aspect, aspect,
                                                      -1, 1, -1, 1)
+            context.projection = GLKMatrix4Scale(context.projection, 0.5, 0.5, 1.0)
             // Offscreen
             screen?.resized(view.drawableWidth, view.drawableHeight)
         }
@@ -160,6 +164,8 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
         }
         
         // Postprocess
+        screen?.shader.enable()
+        screen?.shader.uniform1i("blur", isBlurEnabled ? 1: 0)
         screen?.draw()
     }
 }

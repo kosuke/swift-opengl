@@ -10,6 +10,7 @@ protocol Screen {
     func resized(_ width: Int, _ height: Int)
     func capture()
     func draw()
+    var shader: Shader { get }
 }
 
 class DefaultScreen : Screen {
