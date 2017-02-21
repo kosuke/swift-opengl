@@ -17,7 +17,7 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
     var screen: Screen?
     
     var isBlurEnabled: Bool = false
-    var needsResize: Bool   = true
+    var needsResize:   Bool = true
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,8 +40,8 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
     func tapped(_ sender: UITapGestureRecognizer) {
         // Reset particles
         if let index = shapes.index(where: { ($0 as? ParticleSet) != nil }) {
-            let pointSize = (shapes.remove(at: index) as! ParticleSet).pointSize
-            let particles = ParticleSet(pointSize: pointSize)
+            let size = (shapes.remove(at: index) as! ParticleSet).size
+            let particles = ParticleSet(size: size)
             self.particles = particles
             shapes.append(particles)
         }
@@ -74,17 +74,23 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
     }
     
     func prepare() {
+        // Shared shapes
+        let circle  = Circle()
+        let circle2 = Circle(fill: false)
+        let quad    = Quad(width: 2.0, height: 1.0)
+        let quad2   = Quad(fill: false)
+        
         // Shapes
         let N = 30
         for i in 0..<N {
-            let shape: SimpleShape = {
+            let shape: SimpleShape = ShapeWrapper({
                 switch(i % 4) {
-                case 0:  return Circle()
-                case 1:  return Circle(fill: false)
-                case 2:  return Quad(width: 2.0, height: 1.0)
-                default: return Quad(fill: false)
+                case 0:  return circle
+                case 1:  return circle2
+                case 2:  return quad
+                default: return quad2
                 }
-            }()
+            }())
             let theta = Float(i) / Float(N)  * 2.0 * Float(M_PI)
             let x = 0.5 * cosf(theta)
             let y = 0.5 * sinf(theta)
@@ -98,7 +104,7 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
         }
         
         // Particle
-        let particles = ParticleSet(pointSize: 10.0)
+        let particles = ParticleSet()
         self.particles = particles
         shapes.append(particles)
         
@@ -140,7 +146,12 @@ class ViewController: GLKViewController, GLKViewControllerDelegate {
         // Resize
         if needsResize {
             needsResize = false
-            
+
+            // Scaling
+            let scale: Float = 1.0
+            context.scale    = scale
+            context.screen   = (view.drawableWidth, view.drawableHeight)
+
             // Projecton Matrix
             let w = view.frame.size.width;
             let h = view.frame.size.height;

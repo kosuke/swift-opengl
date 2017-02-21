@@ -6,9 +6,11 @@
 import Foundation
 import GLKit
 
-class RenderContext { // Non-struct because of GLKMatrix4 (inout)
+class RenderContext {
     
-    var projection = GLKMatrix4()
+    var projection    = GLKMatrix4()
+    var scale : Float = 1.0
+    var screen: (width: Int, height: Int) = (0, 0)
 }
 
 protocol Shape {
@@ -59,7 +61,26 @@ class SimpleShape : Shape {
         shader.uniform4f("color", comp.r, comp.g, comp.b, comp.a)
     }
     
-    internal func draw(_ context: RenderContext) {
+    func draw(_ context: RenderContext) {
+        prepareDraw(context)
+        draw()
+    }
+    
+    func draw() {
+    }
+}
+
+class ShapeWrapper : SimpleShape {
+    
+    let delegate: SimpleShape // Go furugal without VertexArray and Shader
+    
+    init(_ delegate: SimpleShape) {
+        self.delegate = delegate
+        super.init(shader: delegate.shader)
+    }
+    
+    override func draw() {
+        delegate.draw()
     }
 }
 
@@ -115,20 +136,8 @@ class Quad : SimpleShape {
         vertexArray = nil
     }
     
-    override func draw(_ context: RenderContext) {
-        guard let vertexArray = self.vertexArray else {
-            return
-        }
-        prepareDraw(context)
-        vertexArray.bind()
-        glDrawArrays(fill ? GL_TRIANGLE_FAN<> : GL_LINE_LOOP<>, 0, 4)
-    }
-    
-     func draw() {
-        guard let vertexArray = self.vertexArray else {
-            return
-        }
-        vertexArray.bind()
+    override func draw() {
+        vertexArray?.bind()
         glDrawArrays(fill ? GL_TRIANGLE_FAN<> : GL_LINE_LOOP<>, 0, 4)
     }
 }
@@ -170,24 +179,34 @@ class Circle : SimpleShape {
         vertexArray = nil
     }
     
-    override func draw(_ context: RenderContext) {
-        guard let vertexArray = self.vertexArray else {
-                return
-        }
-        prepareDraw(context)
-        vertexArray.bind()
+    override func draw() {
+        vertexArray?.bind()
         glDrawArrays(fill ? GL_TRIANGLE_FAN<> : GL_LINE_LOOP<>, 0, count<>)
     }
 }
 
 class ParticleSet : Shape {
     
+    enum Size {
+        case pixel(Int)
+        case scale(Float)
+        
+        func inPixel (_ context: RenderContext) -> Float {
+            switch self {
+            case let .pixel(p) : return Float(p)
+            case let .scale(s) :
+                return s * (Float(context.screen.height) / 2)
+                    * context.scale
+            }
+        }
+    }
+    
     var shader:      Shader?
     var vertexArray: VertexArray?
-    var count:       Int
-    var pointSize:   Float
-    
-    init(pointSize: Float = 10.0) {
+    var count:       Int = 1000 // Initial capacity
+    var size:        Size       // diameter 
+
+    init(size: Size = .pixel(10)) {
         // Particles
         particle_system_init()
         let N = 32
@@ -206,13 +225,7 @@ class ParticleSet : Shape {
         
         // Shader
         shader = Shader("plain.vert", "plain.frag")
-        
-        // Vertex objects
-        let subdata = [(Slot.position, VertexType.float(2), count),
-                       (Slot.velocity, VertexType.float(2), count)]
-        vertexArray = VertexArray(subdata)
-        self.count = count
-        self.pointSize = pointSize
+        self.size = size
     }
     
     deinit {
@@ -223,19 +236,28 @@ class ParticleSet : Shape {
     
     func update(_ dt: Float) {
         particle_system_update(Float(dt))
-        let ps       = particle_system_get(0)
-        
+
         // Update buffers
+        let ps       = particle_system_get(0)
         let position = ps.position!
         let velocity = ps.velocity!
-        vertexArray?.updateSubdata(0, position)
-        vertexArray?.updateSubdata(1, velocity)
+        let count:Int = ps.size<>
+        
+        if self.count < count {
+            let subdata = [(Slot.position, VertexType.float(2), count),
+                           (Slot.velocity, VertexType.float(2), count)]
+            vertexArray = VertexArray(subdata)
+        }
+        
+        self.count = count
+        vertexArray?.updateSubdata(0, position, count)
+        vertexArray?.updateSubdata(1, velocity, count)
     }
     
     func draw(_ context: RenderContext) {
         shader?.enable()
         shader?.matrix4fv("projection", context.projection)
-        shader?.uniform1f("pointSize", pointSize)
+        shader?.uniform1f("pointSize", size.inPixel(context))
         vertexArray?.bind()
         glDrawArrays(GL_POINTS<>, 0, (count)<>)
     }

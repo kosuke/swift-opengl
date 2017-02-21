@@ -208,29 +208,40 @@ class Shader {
 enum VertexType {
     case float(Int)
     case int  (Int)
+    case ubyte (Int)
     
     var gl: GLenum {
         switch self {
         case .float: return GL_FLOAT<>
         case .int:   return GL_INT<>
+        case .ubyte: return GL_UNSIGNED_BYTE<>
         }
     }
     
     var comp: Int {
         switch self {
-        case let .float(c) :  return c
-        case let .int  (c) :  return c
+        case let .float(c): return c
+        case let .int  (c): return c
+        case let .ubyte(c): return c
         }
     }
     
     var stride: Int {
         switch self {
-        case let .float(c) :  return c * MemoryLayout<GLfloat>.stride
-        case let .int  (c) :  return c * MemoryLayout<GLint>.stride
+        case let .float(c): return c * MemoryLayout<GLfloat>.stride
+        case let .int  (c): return c * MemoryLayout<GLint>.stride
+        case let .ubyte(c): return c * MemoryLayout<GLubyte>.stride
+        }
+    }
+    
+    var norm: GLboolean { // Requires normalization
+        switch self {
+        case .float: return false<>
+        case .int:   return false<>
+        case .ubyte: return true<>
         }
     }
 }
-
 
 class VertexArray {
     
@@ -264,7 +275,7 @@ class VertexArray {
         var subs   = [Subdata]()
         for s in subdata {
             let pointer = offset == 0 ? nil : UnsafeRawPointer(bitPattern: offset)
-            glVertexAttribPointer(s.slot, s.type.comp<>, s.type.gl, false<>,
+            glVertexAttribPointer(s.slot, s.type.comp<>, s.type.gl, s.type.norm,
                                   s.type.stride<>, pointer)
             glEnableVertexAttribArray(s.slot)
             subs.append((s.slot, s.type, s.size, offset))
@@ -282,10 +293,14 @@ class VertexArray {
     }
     
     func updateSubdata(_ index: Int, _ data: UnsafeRawPointer) {
+        updateSubdata(index, data, subs[index].size)
+    }
+    
+    func updateSubdata(_ index: Int, _ data: UnsafeRawPointer, _ size: Int) {
         let sub = subs[index]
         glBindBuffer(GL_ARRAY_BUFFER<>, vb)
         glBufferSubData(GL_ARRAY_BUFFER<>, sub.offset,
-                        sub.type.stride * sub.size, data)
+                        sub.type.stride * size, data)
         glBindBuffer(GL_ARRAY_BUFFER<>, 0)
     }
 }
